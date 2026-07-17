@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+.env
+backups/
+
+# Sync runtime files
+.sync_state.json
+.sync.lock
+.sync_bg.log
+summary.json
+
+# Contains hardcoded Notion token — keep off version control
+.agents/mcp_config.json
