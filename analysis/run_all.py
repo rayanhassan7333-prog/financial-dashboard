@@ -18,7 +18,7 @@ def main():
     parser = argparse.ArgumentParser(description="Financial Dashboard Full Analytics Suite & Report Generator")
     parser.add_argument("--chart", action="store_true", default=True, help="Generate and save PNG charts to analysis/charts/")
     parser.add_argument("--module", choices=["all", "summary", "forecast", "receivables", "anomalies", "commute", "networth", "report"], default="all", help="Select specific analysis module to run")
-    parser.add_argument("--report", action="store_true", default=True, help="Generate FINANCIAL_REPORT.md")
+    parser.add_argument("--report", action="store_true", default=True, help="Generate FINANCIAL_REPORT.md in analysis/reports/")
     args = parser.parse_args()
 
     print("\n" + "="*60)
@@ -44,7 +44,7 @@ def main():
         run_net_worth_trends(export_chart=args.chart)
 
     if args.report or args.module in ["all", "report"]:
-        report_path = Path(__file__).resolve().parent / "FINANCIAL_REPORT.md"
+        report_path = Path(__file__).resolve().parent / "reports" / "FINANCIAL_REPORT.md"
         generate_markdown_report(report_path)
 
     print("\n" + "="*60)

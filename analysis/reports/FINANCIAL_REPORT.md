@@ -1,5 +1,5 @@
 # 📊 Financial Database Executive Intelligence Report
-*Generated on: `2026-07-29 02:15:55`*
+*Generated on: `2026-07-29 02:18:08`*
 
 ---
 ## ⚡ Executive Summary & Key Financial KPIs
@@ -38,7 +38,7 @@ Overview of total wealth distribution across liquid cash, loan receivables, and 
 | Binance | 65.21 BDT |
 
 
-![Net Worth Allocation](charts/net_worth_allocation.png)
+![Net Worth Allocation](../charts/net_worth_allocation.png)
 
 ## 2. 📈 Monthly Income & Spending Overview
 
@@ -65,7 +65,7 @@ Summary of all recorded transactions for the current monthly cycle.
 | Bills & Fees | 126.00 BDT | 3 | 0.1% |
 
 
-![Expense Breakdown](charts/expense_breakdown_monthly.png)
+![Expense Breakdown](../charts/expense_breakdown_monthly.png)
 
 ## 3. 🎯 Receivables & Tuition Collection Aging
 
@@ -87,7 +87,7 @@ Tracking outstanding loans to receive and tuition collection performance against
 | Waraka | 53,130.00 BDT | 35 days | 31-60 days (Overdue) | 2026-06-24 |
 
 
-![Receivables Aging](charts/receivables_aging.png)
+![Receivables Aging](../charts/receivables_aging.png)
 
 ## 4. 🔮 30-Day Cash Flow & Runway Forecast
 
@@ -136,7 +136,7 @@ Comparison of recent 30-day spend against 90-day historical baseline to flag une
 | LeisureSub | 316.67 BDT | 0.00 BDT | -316.67 BDT | -100.0% |
 
 
-![Budget Anomalies](charts/budget_anomalies.png)
+![Budget Anomalies](../charts/budget_anomalies.png)
 
 ## 6. 🚗 Commute & Tutor Travel Efficiency
 
@@ -154,7 +154,7 @@ Transport breakdown by trip tag and net tuition yield after travel expenses.
 - **Tutor Travel Expenses (`TutorTrips`)**: `-0.00 BDT`
 - **Net Tuition Revenue**: `38,000.00 BDT` (Net Yield: `100.0%`)
 
-![Commute Breakdown](charts/commute_breakdown.png)
+![Commute Breakdown](../charts/commute_breakdown.png)
 
 ## 💡 Executive Action Items & Recommendations
 

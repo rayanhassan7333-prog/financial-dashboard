@@ -28,6 +28,15 @@ def generate_markdown_report(output_file: Path):
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # Determine chart path prefix relative to output_file location
+    reports_dir = output_file.parent
+    charts_dir = ANALYSIS_DIR / "charts"
+    
+    try:
+        chart_rel_prefix = Path(os.path.relpath(charts_dir, reports_dir)).as_posix() + "/"
+    except Exception:
+        chart_rel_prefix = "../charts/"
+
     # Build Markdown document
     lines = []
 
@@ -87,7 +96,7 @@ def generate_markdown_report(output_file: Path):
         lines.append("\n")
 
     if networth_data.get('chart_path'):
-        lines.append("![Net Worth Allocation](charts/net_worth_allocation.png)\n")
+        lines.append(f"![Net Worth Allocation]({chart_rel_prefix}net_worth_allocation.png)\n")
 
     # Section 2: Monthly Summary
     lines.append("## 2. 📈 Monthly Income & Spending Overview\n")
@@ -113,7 +122,7 @@ def generate_markdown_report(output_file: Path):
         lines.append("\n")
 
     if summary_data.get('chart_path'):
-        lines.append("![Expense Breakdown](charts/expense_breakdown_monthly.png)\n")
+        lines.append(f"![Expense Breakdown]({chart_rel_prefix}expense_breakdown_monthly.png)\n")
 
     # Section 3: Receivables & Tuition Aging
     lines.append("## 3. 🎯 Receivables & Tuition Collection Aging\n")
@@ -143,7 +152,7 @@ def generate_markdown_report(output_file: Path):
         lines.append("\n")
 
     if receivables_data.get('chart_path'):
-        lines.append("![Receivables Aging](charts/receivables_aging.png)\n")
+        lines.append(f"![Receivables Aging]({chart_rel_prefix}receivables_aging.png)\n")
 
     # Section 4: 30-Day Cash Flow Forecast
     lines.append("## 4. 🔮 30-Day Cash Flow & Runway Forecast\n")
@@ -183,7 +192,7 @@ def generate_markdown_report(output_file: Path):
         lines.append("\n")
 
     if anomaly_data.get('chart_path'):
-        lines.append("![Budget Anomalies](charts/budget_anomalies.png)\n")
+        lines.append(f"![Budget Anomalies]({chart_rel_prefix}budget_anomalies.png)\n")
 
     # Section 6: Commute Analytics
     lines.append("## 6. 🚗 Commute & Tutor Travel Efficiency\n")
@@ -203,7 +212,7 @@ def generate_markdown_report(output_file: Path):
     lines.append(f"- **Net Tuition Revenue**: `{commute_data.get('net_tuition_revenue', 0.0):,.2f} BDT` (Net Yield: `{commute_data.get('net_yield_pct', 0.0):.1f}%`)\n")
 
     if commute_data.get('chart_path'):
-        lines.append("![Commute Breakdown](charts/commute_breakdown.png)\n")
+        lines.append(f"![Commute Breakdown]({chart_rel_prefix}commute_breakdown.png)\n")
 
     # Recommendations & Next Steps
     lines.append("## 💡 Executive Action Items & Recommendations\n")
@@ -224,11 +233,12 @@ def generate_markdown_report(output_file: Path):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate Executive Financial Markdown Report")
-    parser.add_argument("--output", type=str, default="FINANCIAL_REPORT.md", help="Output markdown filename")
+    parser.add_argument("--output", type=str, default="reports/FINANCIAL_REPORT.md", help="Output markdown filename/relative path")
     args = parser.parse_args()
 
     out_path = ANALYSIS_DIR / args.output
     generate_markdown_report(out_path)
 
 if __name__ == "__main__":
+    import os
     main()
