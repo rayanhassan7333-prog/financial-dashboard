@@ -1,5 +1,5 @@
 # 📊 Financial Database Executive Intelligence Report
-*Generated on: `2026-07-29 02:18:08`*
+*Generated on: `2026-07-29 02:25:09`*
 
 ---
 ## ⚡ Executive Summary & Key Financial KPIs
@@ -9,12 +9,12 @@
 | **Total Net Worth** | **192,965.43 BDT** | 💼 Combined Assets |
 | **Liquid Cash & Bank** | **32,403.43 BDT** | 💵 Available Liquidity |
 | **Monthly Net Cash Flow** | **-73,603.25 BDT** | 🔴 Deficit |
-| **30-Day Forecast Ending Cash** | **-24,035.67 BDT** | 📈 Projected Balance |
-| **Liquidity Health** | 0.4 Months | 🚨 Tight Liquidity (< 1 Month) |
+| **30-Day Forecast Ending Cash** | **53,614.83 BDT** | 📈 Projected Balance |
+| **Liquidity Health** | 5.8 Months | ✅ Strong Liquidity (> 3 Months) |
 
 
 > [!WARNING]
-> **Budget Drift Warning**: Detected 3 critical spending category spike(s) over the last 30 days. Review Section 5 for details.
+> **Budget Drift Warning**: Detected 2 critical spending category spike(s) over the last 30 days. Review Section 5 for details.
 
 ## 1. 💼 Net Worth & Asset Allocation
 
@@ -74,12 +74,12 @@ Tracking outstanding loans to receive and tuition collection performance against
 ### 📚 2026 Tuition Collection Efficiency
 | Student / Tuition | Monthly Rate | Expected YTD | Received YTD | Collection % | Status |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| Tuition: Nabiha | 8,000.00 BDT | 56,000.00 BDT | 56,000.00 BDT | 100.0% | ✅ On Track / Paid |
-| Tuition: Ayesha | 9,000.00 BDT | 63,000.00 BDT | 54,000.00 BDT | 85.7% | ⚠️ Pending/Overdue (9,000.00 BDT) |
-| Tuition: Mayan | 8,000.00 BDT | 56,000.00 BDT | 43,500.00 BDT | 77.7% | ⚠️ Pending/Overdue (12,500.00 BDT) |
+| Tuition: Nabiha | 8,000.00 BDT | 56,000.00 BDT | 56,000.00 BDT | 100.0% | ✅ On Track / Fully Paid |
+| Tuition: Ayesha | 9,000.00 BDT | 54,000.00 BDT | 54,000.00 BDT | 100.0% | ✅ All Clear (July Skipped) |
+| Tuition: Mayan | 12,000.00 BDT | 84,000.00 BDT | 43,500.00 BDT | 51.8% | ⚠️ Overdue/Pending (40,500.00 BDT) |
 
 
-**Tuition Collection Summary**: Expected YTD: `175,000.00 BDT` | Received YTD: `153,500.00 BDT` | Overall Rate: `87.7%`
+**Tuition Collection Summary**: Expected YTD: `194,000.00 BDT` | Received YTD: `153,500.00 BDT` | Overall Rate: `79.1%`
 
 ### ⏳ Loan Receivables Aging
 | Borrower | Outstanding | Age | Aging Bucket | Last Lent Date |
@@ -96,12 +96,12 @@ Predictive model based on historical daily burn rate (60-day window) and fixed t
 | Forecast Parameter | Amount |
 | :--- | :---: |
 | Current Liquid Assets | 32,403.43 BDT |
-| Average Daily Burn Rate (60d avg) | 2,540.08 BDT/day |
-| Projected Tuition Revenue (+30d) | +25,000.00 BDT |
-| Projected Variable Expenses (-30d) | -76,202.31 BDT |
+| Average Daily Burn Rate (60d avg) | 185.06 BDT/day |
+| Projected Tuition Revenue (+30d) | +32,000.00 BDT |
+| Projected Variable Expenses (-30d) | -5,551.81 BDT |
 | Projected Subscriptions (-30d) | -5,236.79 BDT |
-| **Projected 30-Day Net Cash Flow** | **-56,439.10 BDT** |
-| **Projected Ending Cash Balance** | **-24,035.67 BDT** |
+| **Projected 30-Day Net Cash Flow** | **+21,211.40 BDT** |
+| **Projected Ending Cash Balance** | **53,614.83 BDT** |
 
 
 ## 5. 🚨 Budget Drift & Anomaly Alerts
@@ -111,20 +111,18 @@ Comparison of recent 30-day spend against 90-day historical baseline to flag une
 ### 📊 Category Monthly Drift
 | Category | Baseline/Mo | Recent/Mo | Abs Drift | % Change | Status |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| General Shop | 6,355.00 BDT | 125,981.00 BDT | +119,626.00 BDT | +1882.4% | 🚨 CRITICAL SPIKE |
 | City Commute | 948.67 BDT | 2,097.00 BDT | +1,148.33 BDT | +121.0% | 🚨 CRITICAL SPIKE |
 | Food & Drink | 1,320.67 BDT | 2,010.00 BDT | +689.33 BDT | +52.2% | 🚨 CRITICAL SPIKE |
 | Bills & Fees | 22.61 BDT | 126.00 BDT | +103.39 BDT | +457.3% | ✅ Normal Baseline |
 | Daily Living | 201.67 BDT | 200.00 BDT | -1.67 BDT | -0.8% | ✅ Normal Baseline |
 | Subscription | 1,197.00 BDT | 334.79 BDT | -862.21 BDT | -72.0% | 📉 Savings / Drop |
+| General Shop | 1,855.00 BDT | 0.00 BDT | -1,855.00 BDT | -100.0% | 📉 Savings / Drop |
 | Gifts & Alms | 5,876.67 BDT | 250.00 BDT | -5,626.67 BDT | -95.7% | 📉 Savings / Drop |
-| Loans & Debt | 42,040.00 BDT | 0.00 BDT | -42,040.00 BDT | -100.0% | 📉 Savings / Drop |
 
 
 ### 🏷️ Top Escalating Expense Tags
 | Tag | Baseline/Mo | Recent/Mo | Abs Drift | % Change |
 | :--- | :---: | :---: | :---: | :---: |
-| DevicesBuy | 4,500.00 BDT | 125,981.00 BDT | +121,481.00 BDT | +2699.6% |
 | FoodSnacks | 188.33 BDT | 1,510.00 BDT | +1,321.67 BDT | +701.8% |
 | CampusTrip | 726.33 BDT | 1,406.50 BDT | +680.17 BDT | +93.6% |
 | OtherCommute | 0.00 BDT | 441.86 BDT | +441.86 BDT | +100.0% |
@@ -132,8 +130,9 @@ Comparison of recent 30-day spend against 90-day historical baseline to flag une
 | OfficeSubs | 0.00 BDT | 84.79 BDT | +84.79 BDT | +100.0% |
 | SocialTrip | 222.33 BDT | 248.64 BDT | +26.31 BDT | +11.8% |
 | GroomSpend | 201.67 BDT | 200.00 BDT | -1.67 BDT | -0.8% |
-| Mayan | 100.00 BDT | 0.00 BDT | -100.00 BDT | -100.0% |
 | LeisureSub | 316.67 BDT | 0.00 BDT | -316.67 BDT | -100.0% |
+| SchoolSubs | 880.33 BDT | 250.00 BDT | -630.33 BDT | -71.6% |
+| DailyMeals | 1,132.33 BDT | 500.00 BDT | -632.33 BDT | -55.8% |
 
 
 ![Budget Anomalies](../charts/budget_anomalies.png)

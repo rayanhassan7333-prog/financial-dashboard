@@ -5,15 +5,38 @@ import pandas as pd
 from tabulate import tabulate
 from config import fetch_table_df
 
-TUITION_SCHEDULE = [
-    {"name": "Tuition: Nabiha", "monthly_rate": 8000.0, "student_tag": "Nabiha", "start_date": "2025-01-01"},
-    {"name": "Tuition: Ayesha", "monthly_rate": 9000.0, "student_tag": "Ayesha", "start_date": "2026-01-01"},
-    {"name": "Tuition: Mayan",  "monthly_rate": 8000.0, "student_tag": "Mayan",  "start_date": "2026-01-01"}
-]
+TUITION_CONFIG = {
+    "Nabiha": {
+        "name": "Tuition: Nabiha",
+        "monthly_rate": 8000.0,
+        "student_tag": "Nabiha",
+        "start_date": "2025-01-01",
+        "notes": "Up to date"
+    },
+    "Ayesha": {
+        "name": "Tuition: Ayesha",
+        "monthly_rate": 9000.0,
+        "student_tag": "Ayesha",
+        "start_date": "2026-01-01",
+        "skip_months": [7], # July 2026 skipped
+        "notes": "All clear (July skipped)"
+    },
+    "Mayan": {
+        "name": "Tuition: Mayan",
+        "monthly_rate": 12000.0,
+        "student_tag": "Mayan",
+        "start_date": "2026-01-01",
+        "pending_months": ["June 2026", "July 2026"],
+        "notes": "June & July pending"
+    }
+}
 
 def get_receivables_aging(export_chart: bool = False) -> dict:
     now = datetime.now()
+    current_year = now.year
+    current_month = now.month
 
+    # 1. Loans Aging
     loans_df = fetch_table_df("loans_receivable_v")
     if not loans_df.empty:
         loans_df['outstanding'] = pd.to_numeric(loans_df['outstanding'], errors='coerce').fillna(0)
@@ -37,6 +60,7 @@ def get_receivables_aging(export_chart: bool = False) -> dict:
 
         loans_df['aging_bucket'] = loans_df['days_outstanding'].apply(bucket_days)
 
+    # 2. Tuition Collection Efficiency Calculation
     df = fetch_table_df("unified_register_v")
     tuition_income_df = pd.DataFrame()
     if not df.empty:
@@ -47,23 +71,19 @@ def get_receivables_aging(export_chart: bool = False) -> dict:
             (df['title'].str.contains('Tuition|Nabiha|Ayesha|Mayan', case=False, na=False))
         )].copy()
 
-    current_year = now.year
-    months_in_current_year = now.month
-
     tuition_summary = []
     total_expected_ytd = 0.0
     total_received_ytd = 0.0
 
-    for item in TUITION_SCHEDULE:
-        start_dt = pd.to_datetime(item['start_date'])
-        if start_dt.year == current_year:
-            active_months = max(1, current_year_months := (now.month - start_dt.month + 1))
-        elif start_dt.year < current_year:
-            active_months = months_in_current_year
-        else:
-            active_months = 0
+    for key, item in TUITION_CONFIG.items():
+        # Calculate active billable months in current year (excluding skipped months)
+        active_months_count = 0
+        for m in range(1, current_month + 1):
+            if item.get("skip_months") and m in item["skip_months"]:
+                continue
+            active_months_count += 1
 
-        expected_ytd = item['monthly_rate'] * active_months
+        expected_ytd = item["monthly_rate"] * active_months_count
 
         received_ytd = 0.0
         if not tuition_income_df.empty:
@@ -74,20 +94,29 @@ def get_receivables_aging(export_chart: bool = False) -> dict:
             received_ytd = float(student_txs['amount'].sum())
 
         diff = received_ytd - expected_ytd
-        status = "✅ On Track / Paid" if diff >= 0 else f"⚠️ Pending/Overdue ({abs(diff):,.2f} BDT)"
+        
+        if key == "Ayesha":
+            status = "✅ All Clear (July Skipped)"
+        elif diff >= 0:
+            status = "✅ On Track / Fully Paid"
+        else:
+            status = f"⚠️ Overdue/Pending ({abs(diff):,.2f} BDT)"
+
         collection_rate = (received_ytd / expected_ytd * 100) if expected_ytd > 0 else 100.0
 
         total_expected_ytd += expected_ytd
         total_received_ytd += received_ytd
 
         tuition_summary.append({
+            "key": key,
             "name": item['name'],
             "monthly_rate": item['monthly_rate'],
             "expected_ytd": expected_ytd,
             "received_ytd": received_ytd,
             "collection_rate": collection_rate,
             "diff": diff,
-            "status": status
+            "status": status,
+            "notes": item.get("notes", "")
         })
 
     overall_rate = (total_received_ytd / total_expected_ytd * 100) if total_expected_ytd > 0 else 100.0

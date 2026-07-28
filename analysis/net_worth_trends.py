@@ -30,16 +30,28 @@ def get_net_worth_trends(export_chart: bool = False) -> dict:
 
     total_net_worth = liquid_cash + total_receivables + total_investments
 
+    # Routine monthly expenses (excluding extraordinary capital items > 10k or Loans & Debt)
     df = fetch_table_df("unified_register_v")
-    monthly_expense_avg = 0.0
+    routine_monthly_expense_avg = 0.0
     if not df.empty:
         df['date'] = pd.to_datetime(df['date'])
         df['amount'] = pd.to_numeric(df['amount'], errors='coerce').fillna(0)
         cutoff = datetime.now() - timedelta(days=60)
         recent_expenses = df[(df['date'] >= cutoff) & (df['type'] == 'Expense')]
-        monthly_expense_avg = float((recent_expenses['amount'].sum() / 60.0) * 30.0)
+        
+        def is_routine(row):
+            cat = str(row.get('category', ''))
+            tags = row.get('tags')
+            tags_list = tags if isinstance(tags, list) else []
+            amt = float(row.get('amount', 0))
+            if cat == 'Loans & Debt' or 'DevicesBuy' in tags_list or (cat == 'General Shop' and amt > 10000):
+                return False
+            return True
 
-    liquidity_runway_months = (liquid_cash / monthly_expense_avg) if monthly_expense_avg > 0 else 0.0
+        routine = recent_expenses[recent_expenses.apply(is_routine, axis=1)]
+        routine_monthly_expense_avg = float((routine['amount'].sum() / 60.0) * 30.0)
+
+    liquidity_runway_months = (liquid_cash / routine_monthly_expense_avg) if routine_monthly_expense_avg > 0 else 0.0
 
     health_status = "✅ Strong Liquidity (> 3 Months)" if liquidity_runway_months >= 3.0 else (
         "⚠️ Moderate Buffer (1-3 Months)" if liquidity_runway_months >= 1.0 else "🚨 Tight Liquidity (< 1 Month)"
@@ -75,7 +87,7 @@ def get_net_worth_trends(export_chart: bool = False) -> dict:
         "total_receivables": total_receivables,
         "total_investments": total_investments,
         "total_net_worth": total_net_worth,
-        "monthly_expense_avg": monthly_expense_avg,
+        "monthly_expense_avg": routine_monthly_expense_avg,
         "liquidity_runway_months": liquidity_runway_months,
         "health_status": health_status,
         "wallets_df": wallets_df,
@@ -107,7 +119,7 @@ def run_net_worth_trends(export_chart: bool = False):
 
     health_table = [
         ["Liquid Cash Balance", f"{liquid_cash:,.2f} BDT"],
-        ["Avg Monthly Living Expense (60d avg)", f"{res['monthly_expense_avg']:,.2f} BDT/month"],
+        ["Avg Routine Monthly Living Expense", f"{res['monthly_expense_avg']:,.2f} BDT/month"],
         ["Liquidity Buffer Runway", f"{res['liquidity_runway_months']:.1f} Months"],
         ["Liquidity Health Rating", res['health_status']]
     ]
