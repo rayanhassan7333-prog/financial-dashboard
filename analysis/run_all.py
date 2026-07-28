@@ -12,11 +12,13 @@ from receivables_aging import run_receivables_aging
 from anomaly_detection import run_anomaly_detection
 from commute_analytics import run_commute_analytics
 from net_worth_trends import run_net_worth_trends
+from generate_report import generate_markdown_report
 
 def main():
-    parser = argparse.ArgumentParser(description="Financial Dashboard Full Analytics Suite")
-    parser.add_argument("--chart", action="store_true", help="Generate and save PNG charts to analysis/charts/")
-    parser.add_argument("--module", choices=["all", "summary", "forecast", "receivables", "anomalies", "commute", "networth"], default="all", help="Select specific analysis module to run")
+    parser = argparse.ArgumentParser(description="Financial Dashboard Full Analytics Suite & Report Generator")
+    parser.add_argument("--chart", action="store_true", default=True, help="Generate and save PNG charts to analysis/charts/")
+    parser.add_argument("--module", choices=["all", "summary", "forecast", "receivables", "anomalies", "commute", "networth", "report"], default="all", help="Select specific analysis module to run")
+    parser.add_argument("--report", action="store_true", default=True, help="Generate FINANCIAL_REPORT.md")
     args = parser.parse_args()
 
     print("\n" + "="*60)
@@ -41,8 +43,12 @@ def main():
     if args.module in ["all", "networth"]:
         run_net_worth_trends(export_chart=args.chart)
 
+    if args.report or args.module in ["all", "report"]:
+        report_path = Path(__file__).resolve().parent / "FINANCIAL_REPORT.md"
+        generate_markdown_report(report_path)
+
     print("\n" + "="*60)
-    print("      ✅ ALL FINANCIAL ANALYSES COMPLETED SUCCESSFULLY")
+    print("      ✅ ALL FINANCIAL ANALYSES & REPORT COMPLETED SUCCESSFULLY")
     print("="*60 + "\n")
 
 if __name__ == "__main__":
