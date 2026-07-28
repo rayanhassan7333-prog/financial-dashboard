@@ -4,7 +4,7 @@ Read this first. It is the compact source map for AI agents working in this fold
 
 Supabase Postgres is the source of truth. Notion is the synced presentation layer. Local files are helpers, generated caches, or docs.
 
-Last Generated: 2026-07-12 22:25:32 (Supabase Postgres)
+Last Generated: 2026-07-24 01:35:00 (Supabase Postgres)
 
 ---
 
@@ -21,17 +21,17 @@ Last Generated: 2026-07-12 22:25:32 (Supabase Postgres)
 
 | Metric | Value |
 | :--- | :--- |
-| Total Cash & Bank Assets | 124,873.48 BDT |
-| Outstanding Loans to Receive | 53,054.00 BDT |
+| Total Cash & Bank Assets | 34,598.22 BDT |
+| Outstanding Loans to Receive | 53,130.00 BDT |
 | Active Subscriptions Count | 6 |
-| Ledger Transactions | 634 |
-| Transfers | 121 |
+| Ledger Transactions | 652 |
+| Transfers | 134 |
 
 ### Live Account Balances
-- BKash: 2,775.55 BDT
-- Bank: 100,747.93 BDT
-- Cash: 1,350.00 BDT
-- Savings: 20,000.00 BDT
+- Bank: 28,000.93 BDT
+- BKash: 922.29 BDT
+- Cash: 675.00 BDT
+- Savings: 5,000.00 BDT
 
 ### Loans Outstanding
 - Waraka: 53,130.00 BDT
@@ -109,7 +109,7 @@ Current live Notion sources visible through local Notion MCP: `Ledger`, `Wallet`
 ### Edge Function
 - Name: `sync-to-notion`
 - Local source: `supabase/functions/sync-to-notion/index.ts`
-- Deployed version last verified in this workspace: `6`
+- Deployed version last verified in this workspace: `7`
 - JWT verification is disabled because the database trigger authenticates with `WEBHOOK_SECRET`.
 - Required secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NOTION_TOKEN`, `WEBHOOK_SECRET`.
 
@@ -125,8 +125,10 @@ For the user's goal, write to Supabase from any device or connector. This includ
 - Lending transactions use category `Loans & Debt` and require borrower metadata.
 - Subscription transactions use category `Subscription` and can create/update `subscriptions_list`.
 - Investment transactions use category `Invest Funds` and tags/platform metadata.
-- `status` is for subscriptions only. Lending status should stay `NULL`.
+- `status` is strictly for subscriptions only. All non-subscription transactions MUST have `status = NULL`.
 - Subcategory is retired; use `tags` / Notion `Tag`.
+- **Tag Uniqueness**: Every tag must belong uniquely to exactly ONE parent category. Never duplicate tag names across different parent categories.
+- **Tag Semantics & Naming**: Use clean PascalCase tags. Ensure income transactions use income-oriented tags (`PassiveInc`, `SalaryPaid`, `InterestIn`), and commute tags use explicit names (`DailyCommute`, `OtherCommute`, `CampusTrip`, `SocialTrip`, `TutorTrips`).
 
 ---
 

@@ -14,3 +14,8 @@ summary.json
 
 # Contains hardcoded Notion token — keep off version control
 .agents/mcp_config.json
+
+# Analysis local files
+analysis/.env
+analysis/charts/
+
