@@ -1,19 +1,19 @@
-> **Current source-ownership notice — 24 October 2026:** The local Second Brain folder has been removed. `AGENTS.md` governs current behavior: Supabase owns live financial values; Notion stores requested lasting plans and decisions. `sync_finances_to_brain.py` is now a compatibility command that explicitly skips without writing. The historical Notion sync architecture and IDs below are not verified current configuration and do not authorize re-enabling synchronization.
+> **Current source-ownership notice — 29 October 2026:** The local Second Brain folder has been removed. `AGENTS.md` governs current behavior: Supabase owns live financial values; Notion stores requested lasting plans and decisions. Do not copy balances, net worth, rolling income/spending totals, repayment balances, available cash or computed runway into Notion. `sync_finances_to_brain.py` and analysis push helpers are compatibility commands that explicitly skip without writing. The historical Notion sync architecture and IDs below are archived documentation and do not authorize re-enabling synchronization.
 
 # Financial Agent Map
 
 Read this first. It is the compact source map for AI agents working in this folder.
 
-Supabase Postgres is the source of truth. Notion is the synced presentation layer. Local files are helpers, generated caches, or docs.
+Supabase Postgres is the authoritative source of truth. Live balances, net worth, and rolling totals remain in Supabase only. Local files are analysis helpers, generated caches, or dated reports.
 
 ---
 
 ## 1. Fast Path
 
-- Supabase is the source of truth, and Notion is the synced presentation layer.
-- All syncing operates automatically in the cloud via database triggers and Supabase Edge Functions.
+- Supabase Postgres is the authoritative source of truth for all ledger transactions and live balances.
+- Notion does not receive live balance snapshots, rolling totals, or computed runway (per `AGENTS.md`).
 - To inspect or run SQL queries, use the Supabase MCP server tool `execute_sql` or the Supabase dashboard.
-- Do not start with Notion unless necessary. The database is faster and more complete.
+- Do not query Notion for current balances or financial metrics; answer from live Supabase ledger data.
 
 ---
 
