@@ -5,28 +5,44 @@ import pandas as pd
 from tabulate import tabulate
 from config import fetch_table_df
 
+from receivables_aging import get_receivables_aging
+
 def get_net_worth_trends(export_chart: bool = False) -> dict:
     wallets_df = fetch_table_df("wallet_balances_vw")
     liquid_cash = 0.0
+    total_investments = 0.0
     if not wallets_df.empty:
         wallets_df['balance'] = pd.to_numeric(wallets_df['balance'], errors='coerce').fillna(0)
-        liquid_cash = float(wallets_df['balance'].sum())
+        if 'account_type' in wallets_df.columns:
+            personal_wallets = wallets_df[wallets_df['account_type'] == 'personal']
+            liquid_cash = float(personal_wallets['balance'].sum())
+            inv_wallets = wallets_df[wallets_df['account_type'] == 'investment']
+            total_investments = float(inv_wallets['balance'].sum())
+        else:
+            liquid_cash = float(wallets_df['balance'].sum())
 
-    loans_df = fetch_table_df("loans_receivable_v")
-    total_receivables = 0.0
-    if not loans_df.empty:
-        loans_df['outstanding'] = pd.to_numeric(loans_df['outstanding'], errors='coerce').fillna(0)
-        total_receivables = float(loans_df['outstanding'].sum())
+    # Fetch both Loan Receivables and Tuition Receivables
+    receivables_res = get_receivables_aging(export_chart=False)
+    loans_df = receivables_res.get("loans_df", pd.DataFrame())
+    loan_receivables = 0.0
+    if loans_df is not None and not loans_df.empty:
+        loan_receivables = float(loans_df['outstanding'].sum())
 
-    invest_df = fetch_table_df("investment_summary_v")
-    total_investments = 0.0
-    if not invest_df.empty:
-        if 'outstanding' in invest_df.columns:
-            invest_df['outstanding'] = pd.to_numeric(invest_df['outstanding'], errors='coerce').fillna(0)
-            total_investments = float(invest_df['outstanding'].sum())
-        elif 'invested' in invest_df.columns:
-            invest_df['invested'] = pd.to_numeric(invest_df['invested'], errors='coerce').fillna(0)
-            total_investments = float(invest_df['invested'].sum())
+    tuition_variance = abs(receivables_res.get("variance", 0.0)) if receivables_res.get("variance", 0.0) < 0 else 0.0
+    tuition_receivables = tuition_variance
+
+    total_receivables = loan_receivables + tuition_receivables
+
+    # Fallback to legacy investment view if not tracked via investment accounts
+    if total_investments == 0.0:
+        invest_df = fetch_table_df("investment_summary_v")
+        if not invest_df.empty:
+            if 'outstanding' in invest_df.columns:
+                invest_df['outstanding'] = pd.to_numeric(invest_df['outstanding'], errors='coerce').fillna(0)
+                total_investments = float(invest_df['outstanding'].sum())
+            elif 'invested' in invest_df.columns:
+                invest_df['invested'] = pd.to_numeric(invest_df['invested'], errors='coerce').fillna(0)
+                total_investments = float(invest_df['invested'].sum())
 
     total_net_worth = liquid_cash + total_receivables + total_investments
 
@@ -84,6 +100,8 @@ def get_net_worth_trends(export_chart: bool = False) -> dict:
 
     return {
         "liquid_cash": liquid_cash,
+        "loan_receivables": loan_receivables,
+        "tuition_receivables": tuition_receivables,
         "total_receivables": total_receivables,
         "total_investments": total_investments,
         "total_net_worth": total_net_worth,
@@ -107,7 +125,8 @@ def run_net_worth_trends(export_chart: bool = False):
 
     asset_alloc_table = [
         ["Liquid Cash & Bank Wallets", f"{liquid_cash:,.2f} BDT", f"{(liquid_cash/total_net_worth*100):.1f}%" if total_net_worth > 0 else "0%"],
-        ["Outstanding Receivables (Loans)", f"{total_receivables:,.2f} BDT", f"{(total_receivables/total_net_worth*100):.1f}%" if total_net_worth > 0 else "0%"],
+        ["Loan Receivables", f"{res['loan_receivables']:,.2f} BDT", f"{(res['loan_receivables']/total_net_worth*100):.1f}%" if total_net_worth > 0 else "0%"],
+        ["Tuition Receivables", f"{res['tuition_receivables']:,.2f} BDT", f"{(res['tuition_receivables']/total_net_worth*100):.1f}%" if total_net_worth > 0 else "0%"],
         ["Investments Portfolio", f"{total_investments:,.2f} BDT", f"{(total_investments/total_net_worth*100):.1f}%" if total_net_worth > 0 else "0%"],
         ["---------------------------------", "--------------------", "----------"],
         ["TOTAL NET WORTH", f"{total_net_worth:,.2f} BDT", "100.0%"]

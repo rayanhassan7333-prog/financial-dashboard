@@ -1,165 +1,168 @@
-# 📊 Financial Database Executive Intelligence Report
-*Generated on: `2026-07-29 02:25:09`*
+# 📊 Financial Intelligence Report
+
+> 📅 **Generated**: `2026-10-17 21:41:02` | **Reporting Period**: Monthly Cycle | **Database**: Supabase
+>
+> 🚨 **Immediate Action Items**
+>
+> 1. **Control Budget Drift**: Food & Drink (++109%), Bills & Fees (++467%) are spiking. Apply category caps.
 
 ---
-## ⚡ Executive Summary & Key Financial KPIs
 
-| Key Metric | Value | Status / Indicator |
-| :--- | :---: | :---: |
-| **Total Net Worth** | **192,965.43 BDT** | 💼 Combined Assets |
-| **Liquid Cash & Bank** | **32,403.43 BDT** | 💵 Available Liquidity |
-| **Monthly Net Cash Flow** | **-73,603.25 BDT** | 🔴 Deficit |
-| **30-Day Forecast Ending Cash** | **53,614.83 BDT** | 📈 Projected Balance |
-| **Liquidity Health** | 5.8 Months | ✅ Strong Liquidity (> 3 Months) |
+## Executive Summary
 
+Total net worth is **118,421 BDT**, with **108,244 BDT** in liquid cash providing **17.5 months** of operating runway. This month shows a **🔴 108,507 BDT deficit**. Forward projection to **Nov 30, 2026** estimates ending balance of **122,400 BDT**.
 
-> [!WARNING]
-> **Budget Drift Warning**: Detected 2 critical spending category spike(s) over the last 30 days. Review Section 5 for details.
+```mermaid
+flowchart TD
+    NW["💼 Net Worth<br/><b>118,421 BDT</b>"]
+    NW --> Liquid["💵 Liquid Cash<br/><b>108,244 BDT (91.4%)</b>"]
+    NW --> Rec["📥 Total Receivables<br/><b>555 BDT (0.5%)</b>"]
+    NW --> Inv["📈 Investments<br/><b>9,622 BDT (8.1%)</b>"]
+    Liquid --> Run["✅ Liquidity Runway<br/><b>17.5 Months</b>"]
+    Rec --> Loans["Loans Receivable<br/><b>0.6k BDT</b>"]
+    Rec --> Tuition["Tuition: All Cleared<br/><b>0.0k BDT</b>"]
+```
 
-## 1. 💼 Net Worth & Asset Allocation
+## 1 · Asset Allocation & Liquid Wallets
 
-Overview of total wealth distribution across liquid cash, loan receivables, and investment portfolios.
+> 💡 **Asset Overview**: Breakdown of your net worth components alongside current balances of your liquid checking and savings accounts.
 
-| Asset Category | Value (BDT) | % Allocation |
-| :--- | :---: | :---: |
-| Liquid Cash & Bank Wallets | 32,403.43 BDT | 16.8% |
-| Outstanding Receivables (Loans) | 53,054.00 BDT | 27.5% |
-| Investments Portfolio | 107,508.00 BDT | 55.7% |
-| **Total Net Worth** | **192,965.43 BDT** | **100.0%** |
+### Asset Allocation
 
+| Asset Class | Allocation |
+| :--- | ---: |
+| Liquid Cash & Bank | 91.4% |
+| Loan Receivables | 0.5% |
+| Tuition Receivables | 0.0% |
+| Investments | 8.1% |
+| **Total** | **100%** |
 
-### 🏦 Live Wallet Balances
-| Account / Wallet | Current Balance |
-| :--- | :---: |
-| Bank | 25,150.93 BDT |
-| Savings | 6,000.00 BDT |
-| Cash | 820.00 BDT |
-| BKash | 367.29 BDT |
-| Binance | 65.21 BDT |
+### Wallets & Accounts
 
-
-![Net Worth Allocation](../charts/net_worth_allocation.png)
-
-## 2. 📈 Monthly Income & Spending Overview
-
-Summary of all recorded transactions for the current monthly cycle.
-
-| Financial Metric | Amount |
-| :--- | :---: |
-| Total Gross Income | 57,395.54 BDT |
-| Total Gross Expenses | 130,998.79 BDT |
-| Net Savings / Cash Flow | -73,603.25 BDT |
-| Savings Rate | -128.2% |
-| Transaction Count | 83 |
-
-
-### 🛒 Top Expense Categories
-| Category | Total Spent | Tx Count | % of Expenses |
-| :--- | :---: | :---: | :---: |
-| General Shop | 125,981.00 BDT | 4 | 96.2% |
-| City Commute | 2,097.00 BDT | 22 | 1.6% |
-| Food & Drink | 2,010.00 BDT | 7 | 1.5% |
-| Subscription | 334.79 BDT | 3 | 0.3% |
-| Gifts & Alms | 250.00 BDT | 2 | 0.2% |
-| Daily Living | 200.00 BDT | 1 | 0.2% |
-| Bills & Fees | 126.00 BDT | 3 | 0.1% |
-
-
-![Expense Breakdown](../charts/expense_breakdown_monthly.png)
-
-## 3. 🎯 Receivables & Tuition Collection Aging
-
-Tracking outstanding loans to receive and tuition collection performance against expected schedules.
-
-### 📚 2026 Tuition Collection Efficiency
-| Student / Tuition | Monthly Rate | Expected YTD | Received YTD | Collection % | Status |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| Tuition: Nabiha | 8,000.00 BDT | 56,000.00 BDT | 56,000.00 BDT | 100.0% | ✅ On Track / Fully Paid |
-| Tuition: Ayesha | 9,000.00 BDT | 54,000.00 BDT | 54,000.00 BDT | 100.0% | ✅ All Clear (July Skipped) |
-| Tuition: Mayan | 12,000.00 BDT | 84,000.00 BDT | 43,500.00 BDT | 51.8% | ⚠️ Overdue/Pending (40,500.00 BDT) |
-
-
-**Tuition Collection Summary**: Expected YTD: `194,000.00 BDT` | Received YTD: `153,500.00 BDT` | Overall Rate: `79.1%`
-
-### ⏳ Loan Receivables Aging
-| Borrower | Outstanding | Age | Aging Bucket | Last Lent Date |
-| :--- | :---: | :---: | :---: | :---: |
-| Waraka | 53,130.00 BDT | 35 days | 31-60 days (Overdue) | 2026-06-24 |
-
-
-![Receivables Aging](../charts/receivables_aging.png)
-
-## 4. 🔮 30-Day Cash Flow & Runway Forecast
-
-Predictive model based on historical daily burn rate (60-day window) and fixed tuition schedules.
-
-| Forecast Parameter | Amount |
-| :--- | :---: |
-| Current Liquid Assets | 32,403.43 BDT |
-| Average Daily Burn Rate (60d avg) | 185.06 BDT/day |
-| Projected Tuition Revenue (+30d) | +32,000.00 BDT |
-| Projected Variable Expenses (-30d) | -5,551.81 BDT |
-| Projected Subscriptions (-30d) | -5,236.79 BDT |
-| **Projected 30-Day Net Cash Flow** | **+21,211.40 BDT** |
-| **Projected Ending Cash Balance** | **53,614.83 BDT** |
-
-
-## 5. 🚨 Budget Drift & Anomaly Alerts
-
-Comparison of recent 30-day spend against 90-day historical baseline to flag unexpected drift.
-
-### 📊 Category Monthly Drift
-| Category | Baseline/Mo | Recent/Mo | Abs Drift | % Change | Status |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| City Commute | 948.67 BDT | 2,097.00 BDT | +1,148.33 BDT | +121.0% | 🚨 CRITICAL SPIKE |
-| Food & Drink | 1,320.67 BDT | 2,010.00 BDT | +689.33 BDT | +52.2% | 🚨 CRITICAL SPIKE |
-| Bills & Fees | 22.61 BDT | 126.00 BDT | +103.39 BDT | +457.3% | ✅ Normal Baseline |
-| Daily Living | 201.67 BDT | 200.00 BDT | -1.67 BDT | -0.8% | ✅ Normal Baseline |
-| Subscription | 1,197.00 BDT | 334.79 BDT | -862.21 BDT | -72.0% | 📉 Savings / Drop |
-| General Shop | 1,855.00 BDT | 0.00 BDT | -1,855.00 BDT | -100.0% | 📉 Savings / Drop |
-| Gifts & Alms | 5,876.67 BDT | 250.00 BDT | -5,626.67 BDT | -95.7% | 📉 Savings / Drop |
-
-
-### 🏷️ Top Escalating Expense Tags
-| Tag | Baseline/Mo | Recent/Mo | Abs Drift | % Change |
-| :--- | :---: | :---: | :---: | :---: |
-| FoodSnacks | 188.33 BDT | 1,510.00 BDT | +1,321.67 BDT | +701.8% |
-| CampusTrip | 726.33 BDT | 1,406.50 BDT | +680.17 BDT | +93.6% |
-| OtherCommute | 0.00 BDT | 441.86 BDT | +441.86 BDT | +100.0% |
-| BankCharge | 22.61 BDT | 126.00 BDT | +103.39 BDT | +457.3% |
-| OfficeSubs | 0.00 BDT | 84.79 BDT | +84.79 BDT | +100.0% |
-| SocialTrip | 222.33 BDT | 248.64 BDT | +26.31 BDT | +11.8% |
-| GroomSpend | 201.67 BDT | 200.00 BDT | -1.67 BDT | -0.8% |
-| LeisureSub | 316.67 BDT | 0.00 BDT | -316.67 BDT | -100.0% |
-| SchoolSubs | 880.33 BDT | 250.00 BDT | -630.33 BDT | -71.6% |
-| DailyMeals | 1,132.33 BDT | 500.00 BDT | -632.33 BDT | -55.8% |
-
-
-![Budget Anomalies](../charts/budget_anomalies.png)
-
-## 6. 🚗 Commute & Tutor Travel Efficiency
-
-Transport breakdown by trip tag and net tuition yield after travel expenses.
-
-| Trip Tag | Total Spent | Trips | Avg Cost/Trip | % Share |
-| :--- | :---: | :---: | :---: | :---: |
-| CampusTrip | 2,273.50 BDT | 31 | 73.34 BDT | 65.1% |
-| SocialTrip | 778.64 BDT | 4 | 194.66 BDT | 22.3% |
-| OtherCommute | 441.86 BDT | 3 | 147.29 BDT | 12.6% |
-
-
-### 🎓 Tutor Travel ROI
-- **Gross Tuition Earned**: `38,000.00 BDT`
-- **Tutor Travel Expenses (`TutorTrips`)**: `-0.00 BDT`
-- **Net Tuition Revenue**: `38,000.00 BDT` (Net Yield: `100.0%`)
-
-![Commute Breakdown](../charts/commute_breakdown.png)
-
-## 💡 Executive Action Items & Recommendations
-
-1. **Tuition Receivables Follow-Up**: Focus collection efforts on pending tuition payments (e.g. Mayan / Nabiha variance) to ensure cash flow targets are met.
-2. **Category Drift Control**: Monitor escalated categories (`Food & Dining` / `City Commute`) to prevent ongoing budget drift.
-3. **Loan Recovery**: Maintain communication regarding outstanding loan receivables (`Waraka: 53,130 BDT`) to boost liquid cash reserves.
+| Wallet / Account | Type | Balance (BDT) |
+| :--- | :--- | ---: |
+| Bank | Personal | 86,056 |
+| Biniyog Investment | Investment | 9,622 |
+| BKash | Personal | 9,408 |
+| Savings | Personal | 8,000 |
+| redotPay | Personal | 3,671 |
+| Cash | Personal | 990 |
+| Mom Loan | Lending | 555 |
+| Binance | Personal | 119 |
+| Dadi Loan | Lending | 0 |
+| Mayan Loan | Lending | 0 |
+| Ayman Loan | Lending | 0 |
+| Zayed Loan | Lending | 0 |
+| Waraka Loan | Lending | 0 |
+| iFarmer Investment | Investment | 0 |
+| WeGro Investment | Investment | 0 |
+| Dad Loan | Lending | 0 |
 
 ---
-*Report compiled automatically by Antigravity Financial Intelligence Suite.*
+
+## 2 · Receivables & Loan Recovery
+
+### Tuition Collection Pipeline
+
+```mermaid
+flowchart LR
+    Tuition-Nabiha["Tuition-Nabiha (0.0k/mo)"] -->|Paid 64.0k| Tuition-NabihaP["✅ All Clear"]
+    Tuition-Ayesha["Tuition-Ayesha (0.0k/mo)"] -->|Paid 54.0k| Tuition-AyeshaP["✅ All Clear"]
+    Tuition-Mayan["Tuition-Mayan (12.0k/mo)"] -->|Paid 91.2k| Tuition-MayanP["✅ All Clear"]
+    Tuition-Rafan["Tuition-Rafan (0.0k/mo)"] -->|Paid 5.0k| Tuition-RafanP["✅ All Clear"]
+```
+
+| Student | Current Rate | Expected YTD | Received YTD | Collection |
+| :--- | ---: | ---: | ---: | :---: |
+| Tuition-Nabiha | 0 | 64,000 | 64,000 | 100% |
+| Tuition-Ayesha | 0 | 54,000 | 54,000 | 100% |
+| Tuition-Mayan | 12,000 | 91,200 | 91,200 | 100% |
+| Tuition-Rafan | 0 | 5,000 | 5,000 | 100% |
+
+### Loan Recovery Status
+
+| Borrower | Outstanding (BDT) | Status | Last Lent |
+| :--- | ---: | :--- | :--- |
+| Mom | 555 | 0-30 days | 2026-10-17 |
+
+---
+
+## 3 · Monthly Income & Spending Summary
+
+> 💡 **Cash Flow Details**: Top expense categories for the current period and overall macro-financial summary.
+
+### Financial Summary
+
+| Financial Metric | Amount (BDT) |
+| :--- | ---: |
+| Gross Income | 41,282 |
+| Gross Expenses | 149,789 |
+| Net Cash Flow | -108,507 |
+| Gross Savings Rate | -262.8% |
+| Routine Savings Rate | 77.2% |
+
+### Top Expense Categories
+
+| Category | Spent (BDT) | Share |
+| :--- | ---: | ---: |
+| General Shop | 140,395 | 93.7% |
+| Food & Drink | 4,967 | 3.3% |
+| City Commute | 2,289 | 1.5% |
+| Bills & Fees | 1,450 | 1.0% |
+| Daily Living | 331 | 0.2% |
+| Subscription | 326 | 0.2% |
+
+---
+
+## 4 · Cash Flow Forecast (to Nov 30, 2026)
+
+```mermaid
+flowchart LR
+    Start["Current Liquid Cash<br/><b>108,244 BDT</b>"] --> Inflow["＋ Projected Inflows<br/><b>+24,000 BDT</b>"]
+    Inflow --> Outflow["− Projected Outflows<br/><b>-9,844 BDT</b>"]
+    Outflow --> EndState["🏁 Ending Cash (Nov 30, 2026)<br/><b>122,400 BDT</b>"]
+```
+
+### Expected Inflow Breakdown
+
+| Inflow Source | Expected Amount (BDT) | Details |
+| :--- | ---: | :--- |
+| Tuition-Nabiha | 0 | No session in window |
+| Tuition-Ayesha | 0 | No session in window |
+| Tuition-Mayan | 24,000 | Months: Oct:12,000, Nov:12,000 |
+| Tuition-Rafan | 0 | No session in window |
+
+---
+
+## 5 · Budget Drift, Anomalies & Commute Efficiency
+
+> 💡 **Anomaly Detection**: Compares recent 30-day spend against the 90-day historical baseline to flag unusual activity.
+
+> 🚨 **Critical Expense Spikes**: Food & Drink (+109%), Bills & Fees (+467%) are trending significantly above their 90-day baseline.
+
+> 💡 **Major Cost Reductions**: General Shop (-70%), Gifts & Alms (-64%), Subscription (-25%) are trending below baseline, increasing your routine savings rate.
+
+### Escalating Expense Tags
+
+| Tag | Drift (BDT) | % Change |
+| :--- | ---: | ---: |
+| FoodSnacks | +4,497 | +1046% |
+| BankCharge | +1,080 | +489% |
+| CampusTrip | +429 | +26% |
+| GroomSpend | +198 | +149% |
+| MobileBill | +143 | +2150% |
+
+### Commute Breakdown
+
+| Commute Type | Spent (BDT) | Trips |
+| :--- | ---: | ---: |
+| CampusTrip | 2,099 | 18 |
+| SocialTrip | 180 | 1 |
+| DailyCommute | 10 | 1 |
+
+### Tutor Travel ROI
+**Gross Tuition Earned**: `28,000 BDT` | **Travel Cost**: `-0 BDT` | **Net Yield**: `100.0%` (`28,000 BDT`)
+
+---
+
+*Report compiled automatically by Antigravity Financial Intelligence Suite · 2026-10-17 21:41:02*

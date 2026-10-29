@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finance Ledger"
+  short_description: "Live finance workflows and Notion sync recovery"
+  default_prompt: "Use $finance-ledger to handle my finance request using the live ledger and verify the result."

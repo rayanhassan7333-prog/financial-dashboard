@@ -1,343 +1,337 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
-const LEDGER_DB_ID = "36e24426-9ef8-8070-bc1c-ea1ecd148662";
-const TRANSFER_DB_ID = "36e24426-9ef8-8098-841d-e2bb26b6418e";
+const NOTION_VERSION = "2026-03-11";
+const LEDGER_DATA_SOURCE_ID = Deno.env.get("NOTION_LEDGER_DATA_SOURCE_ID") || "36e24426-9ef8-8083-a8d0-000b7e61fb41";
+const TRANSFER_DATA_SOURCE_ID = Deno.env.get("NOTION_TRANSFER_DATA_SOURCE_ID") || "36e24426-9ef8-800f-be2a-000b0e5aadff";
+const WALLET_DATA_SOURCE_ID = Deno.env.get("NOTION_WALLET_DATA_SOURCE_ID") || "36e24426-9ef8-80e2-886f-000b593d2fc4";
+const ALLOWED_TABLES = new Set(["transactions_table", "wallet_transfer_tb", "wallet_accounts_tb"]);
+const ALLOWED_OPERATIONS = new Set(["INSERT", "UPDATE", "DELETE"]);
 
-// Setup Supabase Client
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+let cachedNotionToken: string | null = null;
 
-async function markQueueDone(queueId: number | null) {
-  if (!queueId) return;
-  const { error } = await supabase
-    .from("sync_queue")
-    .update({ status: "done", processed_at: new Date().toISOString(), error_msg: null })
-    .eq("id", queueId);
-  if (error) console.error("Queue done update failed:", error);
+type EntityType = "transfer" | "ledger" | "wallet";
+
+async function getNotionToken(): Promise<string> {
+  if (cachedNotionToken) return cachedNotionToken;
+  const { data, error } = await supabase
+    .from("sys_config_tb")
+    .select("value")
+    .eq("key", "NOTION_TOKEN")
+    .maybeSingle();
+  if (error || !data?.value) throw new Error("Missing server configuration");
+  cachedNotionToken = String(data.value);
+  return cachedNotionToken;
+}
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function notionHeaders(token: string) {
+  return {
+    Authorization: `Bearer ${token}`,
+    "Notion-Version": NOTION_VERSION,
+    "Content-Type": "application/json",
+  };
+}
+
+function retryDelayMs(response: Response, attempt: number) {
+  const retryAfter = response.headers.get("Retry-After");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds)) return Math.min(seconds * 1000, 30_000);
+    const dateMs = Date.parse(retryAfter);
+    if (Number.isFinite(dateMs)) return Math.min(Math.max(dateMs - Date.now(), 0), 30_000);
+  }
+  return Math.min(500 * 2 ** attempt + Math.random() * 250, 5_000);
+}
+
+async function notionFetch(token: string, url: string, init: RequestInit, maxAttempts = 4) {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12_000);
+    try {
+      const response = await fetch(url, {
+        ...init,
+        headers: { ...notionHeaders(token), ...(init.headers || {}) },
+        signal: controller.signal,
+      });
+      if (response.ok || (response.status !== 429 && response.status < 500)) return response;
+      lastError = new Error(`Notion transient error (${response.status}): ${await response.text()}`);
+      if (attempt < maxAttempts - 1) await new Promise((resolve) => setTimeout(resolve, retryDelayMs(response, attempt)));
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < maxAttempts - 1) await new Promise((resolve) => setTimeout(resolve, retryDelayMs(new Response(null), attempt)));
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  throw lastError || new Error("Notion request failed");
+}
+
+async function verifyWebhookSignature(rawBody: string, signature: string | null, secret: string) {
+  if (!signature || !/^[a-f0-9]{64}$/i.test(signature)) return false;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  const supplied = Uint8Array.from(signature.match(/.{2}/g) || [], (byte) => Number.parseInt(byte, 16));
+  return crypto.subtle.verify("HMAC", key, supplied, new TextEncoder().encode(rawBody));
+}
+
+async function claimQueueItem(queueId: number) {
+  const { data, error } = await supabase.rpc("fn_claim_sync_queue", { p_queue_id: queueId });
+  if (error) throw new Error(`Queue claim failed: ${error.message}`);
+  return data === true;
+}
+
+async function markQueueDoneAtomic(queueId: number | null, table: string, recordId: string, notionId: string | null) {
+  if (!queueId) throw new Error("Missing queue id");
+  const { error } = await supabase.rpc("fn_sync_complete_callback", {
+    p_queue_id: queueId,
+    p_table: table,
+    p_record_id: recordId,
+    p_notion_id: notionId,
+  });
+  if (error) throw new Error(`Atomic queue completion failed: ${error.message}`);
 }
 
 async function markQueueError(queueId: number | null, message: string) {
   if (!queueId) return;
   const { error } = await supabase
     .from("sync_queue")
-    .update({
-      status: "error",
-      processed_at: new Date().toISOString(),
-      error_msg: message.slice(0, 500),
-    })
+    .update({ status: "error", processed_at: new Date().toISOString(), error_msg: message.slice(0, 500) })
     .eq("id", queueId);
   if (error) console.error("Queue error update failed:", error);
 }
 
-function getNotionHeaders(token: string) {
-  return {
-    "Authorization": `Bearer ${token}`,
-    "Notion-Version": "2022-06-28",
-    "Content-Type": "application/json",
-  };
+function dataSourceFor(entityType: EntityType) {
+  if (entityType === "wallet") return { id: WALLET_DATA_SOURCE_ID, title: "Name" };
+  if (entityType === "transfer") return { id: TRANSFER_DATA_SOURCE_ID, title: "Name" };
+  return { id: LEDGER_DATA_SOURCE_ID, title: "Title" };
 }
 
-async function findExistingNotionPage(token: string, title: string, date: string, amount: number, isTransfer: boolean): Promise<string | null> {
-  const dbId = isTransfer ? TRANSFER_DB_ID : LEDGER_DB_ID;
-  const titleProp = isTransfer ? "Name" : "Title";
-  try {
-    const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
-      method: "POST",
-      headers: getNotionHeaders(token),
-      body: JSON.stringify({
-        filter: {
-          and: [
-            { property: "Date", date: { equals: date } },
-            { property: "Amount", number: { equals: amount } },
-          ]
-        }
-      }),
+async function queryDataSource(token: string, dataSourceId: string, filter: Record<string, unknown>) {
+  const response = await notionFetch(token, `https://api.notion.com/v1/data_sources/${dataSourceId}/query`, {
+    method: "POST",
+    body: JSON.stringify({ filter, page_size: 10 }),
+  });
+  if (!response.ok) throw new Error(`Notion query error (${response.status}): ${await response.text()}`);
+  return response.json();
+}
+
+async function findExistingNotionPage(
+  token: string,
+  recordId: string,
+  title: string,
+  date: string | undefined,
+  amount: number | undefined,
+  entityType: EntityType,
+) {
+  const source = dataSourceFor(entityType);
+  const byId = await queryDataSource(token, source.id, {
+    property: "Supabase ID",
+    rich_text: { equals: recordId },
+  });
+  if (byId.results?.[0]?.id) return byId.results[0].id as string;
+
+  const fallbackFilter = entityType === "wallet"
+    ? { property: source.title, title: { equals: title } }
+    : {
+      and: [
+        { property: "Date", date: { equals: date } },
+        { property: "Amount", number: { equals: amount } },
+        { property: source.title, title: { equals: title } },
+      ],
+    };
+  const fallback = await queryDataSource(token, source.id, fallbackFilter);
+  return fallback.results?.[0]?.id || null;
+}
+
+async function upsertNotionPage(
+  token: string,
+  entityType: EntityType,
+  record: Record<string, any>,
+  properties: Record<string, unknown>,
+  existingNotionId: string | null,
+) {
+  const source = dataSourceFor(entityType);
+  const withStableId = {
+    ...properties,
+    "Supabase ID": { rich_text: [{ text: { content: record.id } }] },
+  };
+  const notionId = existingNotionId || await findExistingNotionPage(
+    token,
+    record.id,
+    record.title || record.name,
+    record.date,
+    record.amount,
+    entityType,
+  );
+
+  if (notionId) {
+    const response = await notionFetch(token, `https://api.notion.com/v1/pages/${notionId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ properties: withStableId }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      for (const page of data.results || []) {
-        const titleObj = page.properties?.[titleProp]?.title || [];
-        const pageTitle = titleObj[0]?.text?.content || "";
-        if (pageTitle.trim().toLowerCase() === title.trim().toLowerCase()) {
-          return page.id;
-        }
-      }
-    }
-  } catch (e) {
-    console.warn("Could not check for existing Notion page:", e);
+    if (!response.ok) throw new Error(`Notion page update error (${response.status}): ${await response.text()}`);
+    return notionId;
   }
-  return null;
+
+  const response = await notionFetch(token, "https://api.notion.com/v1/pages", {
+    method: "POST",
+    body: JSON.stringify({
+      parent: { type: "data_source_id", data_source_id: source.id },
+      properties: withStableId,
+    }),
+  });
+  if (!response.ok) throw new Error(`Notion page create error (${response.status}): ${await response.text()}`);
+  return (await response.json()).id as string;
 }
 
 Deno.serve(async (req) => {
+  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+
   let queueId: number | null = null;
+  let targetTable = "";
+  let recordId = "";
   try {
-    // 1. Authorization check: verify secret token in header to prevent unauthorized access
-    const authHeader = req.headers.get("Authorization");
-    const webhookSecret = Deno.env.get("WEBHOOK_SECRET");
-    if (webhookSecret && authHeader !== `Bearer ${webhookSecret}`) {
-      return new Response("Unauthorized", { status: 401 });
+    const notionToken = await getNotionToken();
+
+    const rawBody = await req.text();
+    if (!await verifyWebhookSignature(rawBody, req.headers.get("x-webhook-signature"), notionToken)) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
-    const notionToken = Deno.env.get("NOTION_TOKEN") || req.headers.get("x-notion-token");
-    if (!notionToken) {
-      console.error("NOTION_TOKEN not provided in headers or environment secrets.");
-      return new Response("Config Error: Missing token", { status: 500 });
-    }
-
-    const payload = await req.json();
-    const { queue_id, type, table, record, old_record } = payload;
+    const payload = JSON.parse(rawBody);
+    const { queue_id, type, table, record, old_record, resolved } = payload;
     queueId = typeof queue_id === "number" ? queue_id : Number(queue_id) || null;
-    
-    console.log(`Processing Webhook Event: ${type} on ${table}`);
+    targetTable = table || "";
+    recordId = record?.id || old_record?.id || "";
+    if (!queueId || !recordId || !ALLOWED_TABLES.has(targetTable) || !ALLOWED_OPERATIONS.has(type)) {
+      return jsonResponse({ error: "Invalid webhook payload" }, 400);
+    }
+    if (!await claimQueueItem(queueId)) return jsonResponse({ ok: true, already_processed: true });
 
     if (type === "DELETE") {
       const notionId = old_record?.notion_id;
       if (notionId) {
-        console.log(`Archiving Notion page: ${notionId}`);
-        const response = await fetch(`https://api.notion.com/v1/pages/${notionId}`, {
+        const response = await notionFetch(notionToken, `https://api.notion.com/v1/pages/${notionId}`, {
           method: "PATCH",
-          headers: getNotionHeaders(notionToken),
-          body: JSON.stringify({ archived: true }),
+          body: JSON.stringify({ in_trash: true }),
         });
-        if (!response.ok) {
-          throw new Error(`Notion Archive Error: ${response.status} - ${await response.text()}`);
+        if (!response.ok && response.status !== 404) {
+          throw new Error(`Notion archive error (${response.status}): ${await response.text()}`);
         }
       }
-      await markQueueDone(queueId);
-      return new Response("OK", { status: 200 });
+      await markQueueDoneAtomic(queueId, targetTable, recordId, null);
+      return jsonResponse({ ok: true });
     }
 
-    // UPDATE or INSERT
-    if (!record) {
-      return new Response("Bad Request: Missing record", { status: 400 });
-    }
+    if (!record) return jsonResponse({ error: "Missing record" }, 400);
 
-    // Loop Prevention Guard:
-    // If this is an UPDATE and only the notion_id or updated_at changed, skip sync to avoid loops
-    if (type === "UPDATE" && old_record) {
-      const crucialChanged = 
-        record.date !== old_record.date ||
-        record.title !== old_record.title ||
-        Math.abs((record.amount || 0) - (old_record.amount || 0)) > 0.001 ||
-        record.notes !== old_record.notes ||
-        record.type !== old_record.type ||
-        record.account_id !== old_record.account_id ||
-        record.source_account_id !== old_record.source_account_id ||
-        record.dest_account_id !== old_record.dest_account_id ||
-        record.category_id !== old_record.category_id ||
-        record.status !== old_record.status ||
-        JSON.stringify(record.tags) !== JSON.stringify(old_record.tags);
-
-      if (!crucialChanged) {
-        console.log("No crucial columns changed (likely notion_id write-back loop). Skipping.");
-        await markQueueDone(queueId);
-        return new Response("No-op", { status: 200 });
-      }
-    }
-
-    // Build wallet ID -> Notion ID map from wallet_accounts_tb
-    const { data: walletAccounts } = await supabase
-      .from("wallet_accounts_tb")
-      .select("id, notion_id");
-
-    const walletNotionMap = new Map<string, string>();
-    (walletAccounts || []).forEach((w: { id: string; notion_id: string | null }) => {
-      if (w.id && w.notion_id) {
-        walletNotionMap.set(w.id, w.notion_id);
-      }
-    });
-
-    const notionHeaders = getNotionHeaders(notionToken);
-
-    if (table === "wallet_transfer_tb") {
-      // ----------------------------------------------------
-      // TRANSFER SYNC
-      // ----------------------------------------------------
-      const sourceNotionId = record.source_account_id ? (walletNotionMap.get(record.source_account_id) || record.source_account_id) : null;
-      const destNotionId = record.dest_account_id ? (walletNotionMap.get(record.dest_account_id) || record.dest_account_id) : null;
-
-      const notionProps = {
-        "Name": { "title": [{ "text": { "content": record.title } }] },
-        "Date": { "date": { "start": record.date } },
-        "Amount": { "number": record.amount },
-        "FROM": { "relation": sourceNotionId ? [{ "id": sourceNotionId }] : [] },
-        "TO": { "relation": destNotionId ? [{ "id": destNotionId }] : [] },
+    if (targetTable === "wallet_accounts_tb") {
+      const walletProperties: Record<string, unknown> = {
+        Name: { title: [{ text: { content: record.name } }] },
       };
-
-      let notionId = record.notion_id;
-      if (!notionId) {
-        notionId = await findExistingNotionPage(notionToken, record.title, record.date, record.amount, true);
+      if (record.account_type) {
+        walletProperties["Account Type"] = { select: { name: String(record.account_type).toLowerCase() } };
       }
-
-      if (notionId) {
-        // PATCH existing transfer page
-        console.log(`Updating Notion transfer page: ${notionId}`);
-        const patchRes = await fetch(`https://api.notion.com/v1/pages/${notionId}`, {
-          method: "PATCH",
-          headers: notionHeaders,
-          body: JSON.stringify({ properties: notionProps }),
-        });
-        if (!patchRes.ok) {
-          throw new Error(`Notion Transfer Patch Error: ${patchRes.status} - ${await patchRes.text()}`);
-        }
-        if (!record.notion_id) {
-          // Write notion_id back to Supabase
-          const { error } = await supabase
-            .from("wallet_transfer_tb")
-            .update({ notion_id: notionId, updated_at: new Date().toISOString() })
-            .eq("id", record.id);
-          if (error) console.error("Database Write-back Error:", error);
-        }
-      } else {
-        // POST new transfer page
-        console.log("Creating new Notion transfer page…");
-        const res = await fetch("https://api.notion.com/v1/pages", {
-          method: "POST",
-          headers: notionHeaders,
-          body: JSON.stringify({
-            parent: { database_id: TRANSFER_DB_ID },
-            properties: notionProps,
-          }),
-        });
-        if (res.ok) {
-          const page = await res.json();
-          // Write notion_id back to Supabase
-          const { error } = await supabase
-            .from("wallet_transfer_tb")
-            .update({ notion_id: page.id, updated_at: new Date().toISOString() })
-            .eq("id", record.id);
-          if (error) console.error("Database Write-back Error:", error);
-          console.log(`Successfully created Notion page & wrote back notion_id: ${page.id}`);
-        } else {
-          throw new Error(`Notion Transfer Create Error: ${res.status} - ${await res.text()}`);
-        }
+      const notionId = await upsertNotionPage(notionToken, "wallet", record, walletProperties, record.notion_id || null);
+      await markQueueDoneAtomic(queueId, targetTable, record.id, notionId);
+    } else if (targetTable === "wallet_transfer_tb") {
+      let sourceNotionId = resolved?.source_wallet_notion_id;
+      let destNotionId = resolved?.dest_wallet_notion_id;
+      if (sourceNotionId === undefined && destNotionId === undefined) {
+        const { data: wallets, error } = await supabase
+          .from("wallet_accounts_tb")
+          .select("id, notion_id")
+          .in("id", [record.source_account_id, record.dest_account_id].filter(Boolean));
+        if (error) throw error;
+        const walletMap = new Map((wallets || []).map((wallet: any) => [wallet.id, wallet.notion_id]));
+        sourceNotionId = walletMap.get(record.source_account_id) || null;
+        destNotionId = walletMap.get(record.dest_account_id) || null;
       }
-    } else if (table === "transactions_table") {
-      // ----------------------------------------------------
-      // TRANSACTION SYNC
-      // ----------------------------------------------------
-      const walletNotionId = record.account_id ? (walletNotionMap.get(record.account_id) || record.account_id) : null;
-      const tagsList = [...(record.tags || [])];
-      let categoryName: string | null = null;
-
-      if (record.category_id) {
-        const { data: category } = await supabase
-          .from("parent_category_tb")
-          .select("name")
-          .eq("id", record.category_id)
-          .maybeSingle();
-        categoryName = category?.name || null;
-      }
-      
-      // Query lending record if category is Lending
-      if (record.category_id === "36e24426-9ef8-8181-8fa3-ccff59500003") {
-        const { data: loan } = await supabase
-          .from("lending_records_tb")
-          .select("borrower")
-          .eq("transaction_id", record.id)
-          .maybeSingle();
-        if (loan?.borrower) {
-          tagsList.push(loan.borrower);
-        }
-      }
-
-      const notionProps: Record<string, any> = {
-        "Title": { "title": [{ "text": { "content": record.title } }] },
-        "Date": { "date": { "start": record.date } },
-        "Amount": { "number": record.amount },
-        "Wallet": { "relation": walletNotionId ? [{ "id": walletNotionId }] : [] },
-        "Type": { "select": { "name": record.type === "Income" ? "Income" : "Expense" } },
-        "Tag": { "multi_select": Array.from(new Set(tagsList)).map(t => ({ "name": t })) },
+      const transferProperties: Record<string, unknown> = {
+        Name: { title: [{ text: { content: record.title } }] },
+        Date: { date: { start: record.date } },
+        Amount: { number: record.amount },
+        FROM: { relation: sourceNotionId ? [{ id: sourceNotionId }] : [] },
+        TO: { relation: destNotionId ? [{ id: destNotionId }] : [] },
       };
-
-      if (record.notes !== undefined) {
-        notionProps["Notes"] = { "rich_text": [{ "text": { "content": record.notes || "" } }] };
-      }
-      
-      // Status and Maturity Date properties are only available on Subscriptions category
-      if (record.category_id === "36e24426-9ef8-81e7-9234-f268a5beaad1") {
-        if (record.status) {
-          notionProps["status"] = { "status": { "name": record.status } };
-        }
-        // Fetch end_date from record or subscriptions_list
-        let endDate = record.end_date;
-        if (!endDate) {
-          const { data: sub } = await supabase
-            .from("subscriptions_list")
-            .select("end_date")
-            .eq("transaction_id", record.id)
-            .maybeSingle();
-          endDate = sub?.end_date;
-        }
-        if (endDate) {
-          notionProps["Maturity Date"] = { "date": { "start": endDate } };
-        }
-      }
-
-      if (categoryName) {
-        notionProps["Category"] = { "select": { "name": categoryName } };
-      }
-
-      let notionId = record.notion_id;
-      if (!notionId) {
-        notionId = await findExistingNotionPage(notionToken, record.title, record.date, record.amount, false);
-      }
-
-      if (notionId) {
-        // PATCH existing ledger page
-        console.log(`Updating Notion ledger page: ${notionId}`);
-        const patchRes = await fetch(`https://api.notion.com/v1/pages/${notionId}`, {
-          method: "PATCH",
-          headers: notionHeaders,
-          body: JSON.stringify({ properties: notionProps }),
-        });
-        if (!patchRes.ok) {
-          throw new Error(`Notion Ledger Patch Error: ${patchRes.status} - ${await patchRes.text()}`);
-        }
-        if (!record.notion_id) {
-          // Write notion_id back to Supabase
-          const { error } = await supabase
-            .from("transactions_table")
-            .update({ notion_id: notionId, updated_at: new Date().toISOString() })
-            .eq("id", record.id);
-          if (error) console.error("Database Write-back Error:", error);
-        }
+      const rawTags = record.tags ?? record.tag;
+      const transferTags: string[] = Array.isArray(rawTags)
+        ? rawTags
+        : typeof rawTags === "string" && rawTags.trim() !== ""
+        ? [rawTags]
+        : [];
+      if (transferTags.length > 0) {
+        transferProperties.Tag = { multi_select: transferTags.map((t: string) => ({ name: String(t) })) };
       } else {
-        // POST new ledger page
-        console.log("Creating new Notion ledger page…");
-        const res = await fetch("https://api.notion.com/v1/pages", {
-          method: "POST",
-          headers: notionHeaders,
-          body: JSON.stringify({
-            parent: { database_id: LEDGER_DB_ID },
-            properties: notionProps,
-          }),
-        });
-        if (res.ok) {
-          const page = await res.json();
-          // Write notion_id back to Supabase
-          const { error } = await supabase
-            .from("transactions_table")
-            .update({ notion_id: page.id, updated_at: new Date().toISOString() })
-            .eq("id", record.id);
-          if (error) console.error("Database Write-back Error:", error);
-          console.log(`Successfully created Notion page & wrote back notion_id: ${page.id}`);
-        } else {
-          throw new Error(`Notion Ledger Create Error: ${res.status} - ${await res.text()}`);
-        }
+        transferProperties.Tag = { multi_select: [] };
       }
+      const notionId = await upsertNotionPage(notionToken, "transfer", record, transferProperties, record.notion_id || null);
+      await markQueueDoneAtomic(queueId, targetTable, record.id, notionId);
+    } else if (targetTable === "transactions_table") {
+      let walletNotionId = resolved?.wallet_notion_id;
+      let categoryName = resolved?.category_name;
+      let borrowerName = resolved?.borrower;
+      let endDate = record.end_date || resolved?.end_date;
+
+      if (walletNotionId === undefined && record.account_id) {
+        const { data, error } = await supabase.from("wallet_accounts_tb").select("notion_id").eq("id", record.account_id).maybeSingle();
+        if (error) throw error;
+        walletNotionId = data?.notion_id || null;
+      }
+      if (categoryName === undefined && record.category_id) {
+        const { data, error } = await supabase.from("parent_category_tb").select("name").eq("id", record.category_id).maybeSingle();
+        if (error) throw error;
+        categoryName = data?.name || null;
+      }
+      if (categoryName === "Loans & Debt" && !borrowerName) {
+        const { data, error } = await supabase.from("lending_records_tb").select("borrower").eq("transaction_id", record.id).maybeSingle();
+        if (error) throw error;
+        borrowerName = data?.borrower;
+      }
+      if (categoryName === "Subscription" && !endDate) {
+        const { data, error } = await supabase.from("subscriptions_list").select("end_date").eq("transaction_id", record.id).maybeSingle();
+        if (error) throw error;
+        endDate = data?.end_date;
+      }
+
+      const tags = Array.from(new Set([...(record.tags || []), ...(borrowerName ? [borrowerName] : [])]));
+      const properties: Record<string, unknown> = {
+        Title: { title: [{ text: { content: record.title } }] },
+        Date: { date: { start: record.date } },
+        Amount: { number: record.amount },
+        Wallet: { relation: walletNotionId ? [{ id: walletNotionId }] : [] },
+        Type: { select: { name: record.type === "Income" ? "Income" : "Expense" } },
+        Tag: { multi_select: tags.map((tag) => ({ name: tag })) },
+        Notes: { rich_text: [{ text: { content: record.notes || "" } }] },
+      };
+      if (record.status) properties.Status = { select: { name: record.status } };
+      if (endDate) properties["Maturity Date"] = { date: { start: endDate } };
+      if (categoryName) properties.Category = { select: { name: categoryName } };
+
+      const notionId = await upsertNotionPage(notionToken, "ledger", record, properties, record.notion_id || null);
+      await markQueueDoneAtomic(queueId, targetTable, record.id, notionId);
     }
 
-    await markQueueDone(queueId);
-    return new Response("OK", { status: 200 });
-  } catch (err: any) {
-    console.error("Function Error:", err);
-    await markQueueError(queueId, err?.message || String(err));
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Function error:", message);
+    await markQueueError(queueId, message);
+    return jsonResponse({ error: "Sync failed", queue_id: queueId }, 500);
   }
 });

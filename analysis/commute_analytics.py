@@ -7,7 +7,7 @@ from config import fetch_table_df
 
 COMMUTE_TAGS = ['DailyCommute', 'CampusTrip', 'SocialTrip', 'TutorTrips', 'OtherCommute']
 
-def get_commute_analytics(days: int = 60, export_chart: bool = False) -> dict:
+def get_commute_analytics(days: int = 30, export_chart: bool = False) -> dict:
     df = fetch_table_df("unified_register_v")
     if df.empty:
         return {}
@@ -32,7 +32,7 @@ def get_commute_analytics(days: int = 60, export_chart: bool = False) -> dict:
                         'title': row['title'],
                         'amount': float(row['amount']),
                         'tag': t,
-                        'wallet': row.get('wallet', 'Unknown')
+                        'wallet': row.get('source_wallet') or row.get('dest_wallet') or 'Unknown'
                     })
 
     commute_df = pd.DataFrame(commute_rows)
@@ -48,8 +48,8 @@ def get_commute_analytics(days: int = 60, export_chart: bool = False) -> dict:
 
     income_df = recent_df[recent_df['type'] == 'Income']
     tuition_income_df = income_df[
-        (income_df['category'].str.lower() == 'tuition') | 
-        (income_df['title'].str.contains('Tuition|Nabiha|Ayesha|Mayan', case=False, na=False))
+        (income_df['title'].str.contains('Tuition', case=False, na=False)) &
+        (~income_df['title'].str.contains(r'^Repay', case=False, na=False))
     ]
 
     gross_tuition_earned = float(tuition_income_df['amount'].sum())

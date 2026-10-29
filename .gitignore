@@ -19,3 +19,9 @@ summary.json
 analysis/.env
 analysis/charts/
 
+# Sync artifacts & icons
+Icon*
+.tmp.drivedownload/
+.tmp.driveupload/
+*.png
+

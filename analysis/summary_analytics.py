@@ -35,6 +35,22 @@ def get_summary_analytics(period: str = "monthly", days: int = None, export_char
     net_cash_flow = total_income - total_expense
     savings_rate = (net_cash_flow / total_income * 100) if total_income > 0 else 0.0
 
+    # Separate routine expenses (excl DevicesBuy or General Shop > 10k)
+    def is_routine(row):
+        cat = str(row.get('category', ''))
+        tags = row.get('tags')
+        tags_list = tags if isinstance(tags, list) else []
+        amt = float(row.get('amount', 0))
+        if cat == 'Loans & Debt' or 'DevicesBuy' in tags_list or (cat == 'General Shop' and amt > 10000):
+            return False
+        return True
+
+    routine_expense_df = expense_df[expense_df.apply(is_routine, axis=1)] if not expense_df.empty else pd.DataFrame()
+    routine_expense = float(routine_expense_df['amount'].sum()) if not routine_expense_df.empty else 0.0
+    capital_expense = total_expense - routine_expense
+    routine_net_cash_flow = total_income - routine_expense
+    routine_savings_rate = (routine_net_cash_flow / total_income * 100) if total_income > 0 else 0.0
+
     cat_summary = pd.DataFrame()
     if not expense_df.empty:
         cat_summary = expense_df.groupby('category')['amount'].agg(['sum', 'count']).reset_index()
@@ -60,7 +76,8 @@ def get_summary_analytics(period: str = "monthly", days: int = None, export_char
     wallets_df = fetch_table_df("wallet_balances_vw")
     if not wallets_df.empty:
         wallets_df['balance'] = pd.to_numeric(wallets_df['balance'], errors='coerce').fillna(0)
-        wallets_df = wallets_df[['name', 'balance']].sort_values(by='balance', ascending=False)
+        cols = ['name', 'balance', 'account_type'] if 'account_type' in wallets_df.columns else ['name', 'balance']
+        wallets_df = wallets_df[cols].sort_values(by='balance', ascending=False)
 
     chart_path = None
     if export_chart and not expense_df.empty:
@@ -85,8 +102,12 @@ def get_summary_analytics(period: str = "monthly", days: int = None, export_char
         "period": period,
         "total_income": total_income,
         "total_expense": total_expense,
+        "routine_expense": routine_expense,
+        "capital_expense": capital_expense,
         "net_cash_flow": net_cash_flow,
+        "routine_net_cash_flow": routine_net_cash_flow,
         "savings_rate": savings_rate,
+        "routine_savings_rate": routine_savings_rate,
         "tx_count": len(filtered_df),
         "cat_summary": cat_summary,
         "tag_summary": tag_summary,
@@ -127,7 +148,8 @@ def run_summary_analysis(period: str = "monthly", days: int = None, export_chart
 
     if not res['wallets_df'].empty:
         print("--- Current Live Wallet Balances ---")
-        print(tabulate(res['wallets_df'], headers=["Wallet", "Balance (BDT)"], tablefmt="fancy_grid"))
+        headers = ["Wallet", "Balance (BDT)", "Type"] if 'account_type' in res['wallets_df'].columns else ["Wallet", "Balance (BDT)"]
+        print(tabulate(res['wallets_df'], headers=headers, tablefmt="fancy_grid"))
         print("\n")
 
     if res['chart_path']:

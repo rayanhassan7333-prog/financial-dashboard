@@ -1,10 +1,10 @@
-# Financial Dashboard Agent Map
+> **Current source-ownership notice — 24 October 2026:** The local Second Brain folder has been removed. `AGENTS.md` governs current behavior: Supabase owns live financial values; Notion stores requested lasting plans and decisions. `sync_finances_to_brain.py` is now a compatibility command that explicitly skips without writing. The historical Notion sync architecture and IDs below are not verified current configuration and do not authorize re-enabling synchronization.
+
+# Financial Agent Map
 
 Read this first. It is the compact source map for AI agents working in this folder.
 
 Supabase Postgres is the source of truth. Notion is the synced presentation layer. Local files are helpers, generated caches, or docs.
-
-Last Generated: 2026-07-24 01:35:00 (Supabase Postgres)
 
 ---
 
@@ -17,26 +17,9 @@ Last Generated: 2026-07-24 01:35:00 (Supabase Postgres)
 
 ---
 
-## 2. Current Live Summary
+## 2. Live State
 
-| Metric | Value |
-| :--- | :--- |
-| Total Cash & Bank Assets | 34,598.22 BDT |
-| Outstanding Loans to Receive | 53,130.00 BDT |
-| Active Subscriptions Count | 6 |
-| Ledger Transactions | 652 |
-| Transfers | 134 |
-
-### Live Account Balances
-- Bank: 28,000.93 BDT
-- BKash: 922.29 BDT
-- Cash: 675.00 BDT
-- Savings: 5,000.00 BDT
-
-### Loans Outstanding
-- Waraka: 53,130.00 BDT
-- Zayed: 0.00 BDT
-- Mayan & Mom: 0.00 BDT (Fully Repaid)
+Do not record balances, row counts, receivables, or other changing financial facts in this routing file. Query Supabase using the SQL in section 8. For compact agent retrieval, call `ai_snapshot(p_months, p_recent)` with a trusted service-role connection.
 
 ---
 
@@ -52,54 +35,61 @@ Last Generated: 2026-07-24 01:35:00 (Supabase Postgres)
 
 ## 4. Supabase Structure
 
-Project: `Finance-tracker`  
-Project ref: `pyryeeewtdypukuprgwc`  
+Project: `Finance-tracker`
+Project ref: `pyryeeewtdypukuprgwc`
 Region: `ap-south-1`
 
 ### Tables
-- `transactions_table`: Ledger transactions. Core source for income and expenses.
-- `wallet_transfer_tb`: Wallet transfers.
-- `wallet_accounts_tb`: Wallet/account lookup table.
+- `transactions_table`: Ledger transactions. Core source for income and expenses (with `idempotency_key`).
+- `wallet_transfer_tb`: Wallet transfers (with `idempotency_key` and `project_id`).
+- `wallet_accounts_tb`: Wallet/account lookup table (with `counterparty_id`).
+- `counterparties_tb`: Relational counterparty/borrower registry (`Mom`, `Dadi`, `Zayed`, etc.).
+- `investment_projects_tb`: Project-level investment registry (`Dazzling Trade`, `Onion Harvest`, etc.).
+- `tags_tb`: Canonical tags registry strictly mapped to parent categories.
 - `parent_category_tb`: Category lookup table.
-- `lending_records_tb`: Loan metadata attached to transaction rows.
 - `subscriptions_list`: Subscription metadata attached to transaction rows.
 - `investment_tracker`: Investment metadata attached to transaction rows.
 - `sync_queue`: Backup/retry/audit queue for Supabase-to-Notion sync.
-- `sys_config_tb`: Internal sync config.
+- `sys_config_tb`: Internal sync config (with Notion token secured in Supabase Vault).
 
-There is no active `sub_category_tb` table and no `transactions_table.subcategory_id` column. Tags are stored in `transactions_table.tags` and synced to Notion `Tag`.
-
-### Views
-- `unified_register_v`: Main read view for ledger + transfers.
+### Views (All with `security_invoker = true`)
+- `unified_register_v`: Main read view for ledger + transfers (uses `counterparties_tb`).
 - `wallet_balances_vw`: Current wallet balances.
-- `loans_receivable_v`: Outstanding loan balances.
+- `loans_receivable_v`: Outstanding loan balances (dynamically resolved from `counterparties_tb`).
 - `active_recur_bills`: Active subscription view.
 - `monthly_aggregates`, `net_worth_snapshot`, `investment_summary_v`: Summary/reporting views.
 
 ### Functions And Triggers
-- `ai_snapshot(recent_limit, subscription_limit)`: compact JSON state for agents.
-- `trg_realtime_sync_to_notion_fn()`: trigger function for outbound Notion sync.
-- `trg_process_special_categories_fn()`: keeps lending/subscription/investment helper rows aligned.
+- `ai_snapshot(p_months, p_recent)`: compact JSON state for trusted agents.
+- `trg_realtime_sync_to_notion_fn()`: trigger function for outbound Notion sync using Supabase Vault secrets.
+- `fn_validate_transaction_tags()` / `trg_validate_transaction_tags`: enforces database-level category-to-tag integrity.
+- `trg_process_special_categories_fn()`: keeps subscription/investment helper rows aligned and parses duration intervals.
+- `trg_populate_transfer_title_fn()`: auto-generates transfer titles (`Transfer: <Source> -> <Dest>`) when omitted.
 - `update_updated_at_column()`: timestamp helper.
-- `trg_enqueue_notion_sync` runs on `INSERT`, `UPDATE`, and `DELETE` for `transactions_table` and `wallet_transfer_tb`.
+- `trg_enqueue_notion_sync` runs on `INSERT`, `UPDATE`, and `DELETE` for `transactions_table`, `wallet_transfer_tb`, and `wallet_accounts_tb`.
 
 ---
 
 ## 5. Notion Connection Setup
 
-### Notion Databases
-- Root dashboard: `36e24426-9ef8-8021-8e53-d993b3d7eb40`
+### Notion Dashboards & Databases
+- Financial Dashboard (Root): `36e24426-9ef8-8021-8e53-d993b3d7eb40`
+- 2ndBrain Dashboard: `3cd24426-9ef8-8097-91e7-d24ba56aeb21`
+  - Brain Dump Database: `3cd24426-9ef8-8051-be9c-de20c83c5a99` (Properties: `Name`, `Category`, `Status`, `Tags`)
+- Academic Dashboard: `24424426-9ef8-8033-9927-f9336e4b5d13`
+  - Student Info Database: `3cc24426-9ef8-803f-a364-cf4340ff4ff7` (Inline `Student Details`: `3cc24426-9ef8-802a-aeb7-e02e6e132f39`)
 - Ledger database: `36e24426-9ef8-8070-bc1c-ea1ecd148662`
 - Ledger data source: `36e24426-9ef8-8083-a8d0-000b7e61fb41`
 - Transfer database: `36e24426-9ef8-8098-841d-e2bb26b6418e`
 - Transfer data source: `36e24426-9ef8-800f-be2a-000b0e5aadff`
 - Wallet database: `36e24426-9ef8-80e8-a27b-f7a6462d41a3`
 - Wallet data source: `36e24426-9ef8-80e2-886f-000b593d2fc4`
+- Automated Financial Intelligence Report page: `3ac24426-9ef8-804e-b3ed-e9a614a69c80`
 
-Current live Notion sources visible through local Notion MCP: `Ledger`, `Wallet`, `Transfer`.
+Live Notion databases: `Ledger`, `Wallet`, `Transfer`, `Brain Dump`, `Student Details`, `Faculty`, `Courses`, `Categories`, `Semester`, `Grades`.
 
 ### Sync Flow
-1. A row is added, updated, or deleted in Supabase `transactions_table` or `wallet_transfer_tb`.
+1. A row is added, updated, or deleted in Supabase `transactions_table`, `wallet_transfer_tb`, or `wallet_accounts_tb`.
 2. Supabase trigger `trg_realtime_sync_to_notion_fn()` writes a `sync_queue` backup row.
 3. The same trigger calls the deployed Edge Function `sync-to-notion` asynchronously through `pg_net`.
 4. `sync-to-notion` creates, updates, or archives the matching Notion page.
@@ -109,12 +99,13 @@ Current live Notion sources visible through local Notion MCP: `Ledger`, `Wallet`
 ### Edge Function
 - Name: `sync-to-notion`
 - Local source: `supabase/functions/sync-to-notion/index.ts`
-- Deployed version last verified in this workspace: `7`
-- JWT verification is disabled because the database trigger authenticates with `WEBHOOK_SECRET`.
-- Required secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NOTION_TOKEN`, `WEBHOOK_SECRET`.
+- JWT verification is disabled because the database trigger authenticates the request body with an HMAC signature.
+- Required built-in secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+- Required database config: `NOTION_TOKEN` in the locked-down `sys_config_tb`; the Edge Function reads and caches it through its service-role client.
+- Notion API version: `2026-03-11`; syncing uses data-source IDs and stores each source UUID in Notion's `Supabase ID` property.
 
 ### Normal Write Path
-For the user's goal, write to Supabase from any device or connector. This includes ChatGPT's Supabase connector. If the write lands in `transactions_table` or `wallet_transfer_tb`, it should sync to Notion automatically.
+For the user's goal, write to Supabase from any device or connector. This includes ChatGPT's Supabase connector. If the write lands in `transactions_table`, `wallet_transfer_tb`, or `wallet_accounts_tb`, it syncs to Notion automatically.
 
 ---
 
@@ -125,20 +116,16 @@ For the user's goal, write to Supabase from any device or connector. This includ
 - Lending transactions use category `Loans & Debt` and require borrower metadata.
 - Subscription transactions use category `Subscription` and can create/update `subscriptions_list`.
 - Investment transactions use category `Invest Funds` and tags/platform metadata.
-- `status` is strictly for subscriptions only. All non-subscription transactions MUST have `status = NULL`.
+- `status` is supported for subscriptions (`Active`, `Expired`) and tuitions (`Active`, `Paused`, `Expired`). All other standard ledger transactions default to `status = NULL`.
 - Subcategory is retired; use `tags` / Notion `Tag`.
 - **Tag Uniqueness**: Every tag must belong uniquely to exactly ONE parent category. Never duplicate tag names across different parent categories.
 - **Tag Semantics & Naming**: Use clean PascalCase tags. Ensure income transactions use income-oriented tags (`PassiveInc`, `SalaryPaid`, `InterestIn`), and commute tags use explicit names (`DailyCommute`, `OtherCommute`, `CampusTrip`, `SocialTrip`, `TutorTrips`).
 
 ---
 
-## 7. Tuition Reference
+## 7. Changing Financial Facts
 
-| Tuition Name | Start Date | Monthly Rate | Expected Payment Date |
-| :--- | :---: | :---: | :--- |
-| Tuition: Nabiha | Jan 2025 | 8,000 TK (14,000 TK in 2025) | By the end of the month |
-| Tuition: Ayesha | Jan 2026 | 9,000 TK | By the end of the month |
-| Tuition: Mayan | Jan 2026 | 8,000 TK (or 12,000 TK) | By the end of the month; consistently late |
+Tuition rates, statuses, balances, due dates, and receivables belong in Supabase or the canonical Second Brain finance notes—not this routing file. Always retrieve them live before answering or making a recommendation.
 
 ---
 
@@ -152,21 +139,21 @@ SELECT name AS wallet_name, balance
 FROM wallet_balances_vw
 ORDER BY name;
 ```
- 
+
 ### Outstanding Loans
 ```sql
 SELECT borrower, outstanding, times_lent, times_repaid, last_lent_date, last_repaid_date
 FROM loans_receivable_v
 ORDER BY borrower;
 ```
- 
+
 ### Active Subscriptions
 ```sql
 SELECT title, amount, wallet, status, start_date, end_date, duration, days_remaining
 FROM active_recur_bills
 ORDER BY days_remaining ASC;
 ```
- 
+
 ### Investment Summary
 ```sql
 SELECT i.platform,
@@ -179,7 +166,7 @@ JOIN transactions_table t ON i.transaction_id = t.id
 GROUP BY i.platform
 ORDER BY i.platform;
 ```
- 
+
 ### Recent Transactions
 ```sql
 SELECT date, title, amount, type, status

@@ -15,37 +15,44 @@ from net_worth_trends import run_net_worth_trends
 from generate_report import generate_markdown_report
 
 def main():
-    parser = argparse.ArgumentParser(description="Financial Dashboard Full Analytics Suite & Report Generator")
-    parser.add_argument("--chart", action="store_true", default=True, help="Generate and save PNG charts to analysis/charts/")
+    parser = argparse.ArgumentParser(description="Financial Full Analytics Suite & Report Generator")
+    parser.add_argument("--chart", action=argparse.BooleanOptionalAction, default=True, help="Generate and save PNG charts to analysis/charts/")
     parser.add_argument("--module", choices=["all", "summary", "forecast", "receivables", "anomalies", "commute", "networth", "report"], default="all", help="Select specific analysis module to run")
-    parser.add_argument("--report", action="store_true", default=True, help="Generate FINANCIAL_REPORT.md in analysis/reports/")
+    parser.add_argument("--report", action=argparse.BooleanOptionalAction, default=None, help="Generate FINANCIAL_REPORT.md in analysis/reports/")
     args = parser.parse_args()
 
     print("\n" + "="*60)
     print("      FINANCIAL DASHBOARD & ANALYTICS SUITE (FULL RUN)")
     print("="*60)
 
-    if args.module in ["all", "summary"]:
+    should_generate_report = args.report if args.report is not None else args.module in ["all", "report"]
+
+    # A report already runs every analysis module. Avoid doing all work twice.
+    ran_full_report = args.module == "all" and should_generate_report
+    if ran_full_report:
+        report_path = Path(__file__).resolve().parent / "reports" / "FINANCIAL_REPORT.md"
+        generate_markdown_report(report_path, export_charts=args.chart)
+    elif args.module in ["all", "summary"]:
         run_summary_analysis(period="monthly", export_chart=args.chart)
 
-    if args.module in ["all", "forecast"]:
-        run_cashflow_forecast(lookback_days=60, forecast_days=30)
+    if not ran_full_report and args.module != "report" and args.module in ["all", "forecast"]:
+        run_cashflow_forecast(lookback_days=60)
 
-    if args.module in ["all", "receivables"]:
+    if not ran_full_report and args.module != "report" and args.module in ["all", "receivables"]:
         run_receivables_aging(export_chart=args.chart)
 
-    if args.module in ["all", "anomalies"]:
+    if not ran_full_report and args.module != "report" and args.module in ["all", "anomalies"]:
         run_anomaly_detection(baseline_days=90, recent_days=30, export_chart=args.chart)
 
-    if args.module in ["all", "commute"]:
-        run_commute_analytics(days=60, export_chart=args.chart)
+    if not ran_full_report and args.module != "report" and args.module in ["all", "commute"]:
+        run_commute_analytics(days=30, export_chart=args.chart)
 
-    if args.module in ["all", "networth"]:
+    if not ran_full_report and args.module != "report" and args.module in ["all", "networth"]:
         run_net_worth_trends(export_chart=args.chart)
 
-    if args.report or args.module in ["all", "report"]:
+    if should_generate_report and args.module != "all":
         report_path = Path(__file__).resolve().parent / "reports" / "FINANCIAL_REPORT.md"
-        generate_markdown_report(report_path)
+        generate_markdown_report(report_path, export_charts=args.chart)
 
     print("\n" + "="*60)
     print("      ✅ ALL FINANCIAL ANALYSES & REPORT COMPLETED SUCCESSFULLY")
