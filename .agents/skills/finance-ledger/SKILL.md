@@ -36,7 +36,7 @@ description: Query and maintain this workspace's live finance ledger in Supabase
 - For totals, explain the scope, date range, matched record count, and material inclusions or exclusions. Use a consistent database snapshot when related totals must reconcile. Label partial periods and distinguish net worth, liquidity, outstanding principal, and profit.
 - Search titles, notes, tags, and relationships when attribution needs them, then inspect the matched rows. A keyword match alone does not establish the purpose of spending.
 - Treat restricted personal sources according to workspace retrieval rules. Do not expand a ledger lookup into unrelated sensitive data retrieval.
-- Update canonical finance notes only when the user authorizes persistence. Include the actual verification date and source scope, rebuild the knowledge index, and reread the changed content. Do not save current facts in this skill.
+- Update canonical finance notes only when the user authorizes persistence. Include the actual verification date and source scope, preserve the owning Topic and relevant relations, and read back the changed Notion record. The former local knowledge index is retired; do not recreate or rebuild it. Do not save current facts in this skill.
 
 ## Platform maintenance
 

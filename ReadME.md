@@ -1,5 +1,7 @@
 > **Current source-ownership notice — 29 October 2026:** The local Second Brain folder has been removed. `AGENTS.md` governs current behavior: Supabase owns live financial values; Notion stores requested lasting plans and decisions. Do not copy balances, net worth, rolling income/spending totals, repayment balances, available cash or computed runway into Notion. `sync_finances_to_brain.py` and analysis push helpers are compatibility commands that explicitly skip without writing. The historical Notion sync architecture and IDs below are archived documentation and do not authorize re-enabling synchronization.
 
+> **Transaction-mirror decision — 30 October 2026:** The user explicitly chose to keep the existing Supabase-to-Notion transaction/transfer mirror active. This is separate from the retired local-vault and financial-dashboard publishers. Supabase remains authoritative; do not publish computed balances or rolling totals to the Second Brain. Verify mirror recovery against current source identity and later operations; do not resurrect transactions that were subsequently deleted.
+
 # Financial Agent Map
 
 Read this first. It is the compact source map for AI agents working in this folder.
